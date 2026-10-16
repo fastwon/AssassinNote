@@ -51,6 +51,7 @@
 * { box-sizing: border-box; }
 
 html, body { margin: 0; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 body {
   background: var(--bg);
@@ -140,7 +141,25 @@ input[type="search"], input[type="text"], input[type="number"], select, textarea
   border-radius: 8px;
   padding: 8px 12px;
   width: 100%;
+  /* 아이폰 Safari: 기본 입력창 모양과 고유 최소 너비 때문에 상자를 벗어나는 것을 막는다 */
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  /* 16px보다 작으면 아이폰이 입력할 때 화면을 확대한다 */
+  font-size: 16px;
+  line-height: 1.4;
 }
+input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; }
+select {
+  padding-right: 34px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  text-overflow: ellipsis;
+}
+input[type="checkbox"] { -webkit-appearance: checkbox; appearance: auto; width: 18px; height: 18px; flex: 0 0 auto; }
 input:focus, select:focus, textarea:focus, button:focus-visible, a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -467,7 +486,8 @@ a.missing { color: var(--missing); border-bottom: 1px dashed currentColor; }
 .field label { display: block; font-weight: 500; margin-bottom: 4px; font-size: 14px; }
 .field .hint { color: var(--muted); font-size: 13px; margin-top: 4px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
+.check input { margin-top: 2px; }
 .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .error { color: var(--accent); font-size: 14px; }
 
@@ -494,47 +514,101 @@ a.missing { color: var(--missing); border-bottom: 1px dashed currentColor; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* ---------- 반응형 ---------- */
-@media (max-width: 860px) {
-  /* 좁은 화면에서는 연도 바를 목록 위의 가로 버튼 줄로 */
-  .tl-layout { grid-template-columns: 1fr; }
-  .year-nav {
-    order: -1;
-    position: static;
-    max-height: none;
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding: 0 0 4px;
-    border-left: 0;
-  }
-  .year-nav-group { display: flex; gap: 6px; flex: 0 0 auto; }
-  .year-nav-group + .year-nav-group { margin-top: 0; }
-  .year-nav-era { width: auto; white-space: nowrap; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
-  .year-nav-group.open .year-nav-years { display: flex; gap: 6px; }
-  .year-nav-item {
-    width: auto;
-    margin-left: 0;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 4px 12px;
-    white-space: nowrap;
-  }
-  .year-nav-dot { display: none; }
-  .year-nav-item.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .article-layout { grid-template-columns: 1fr; }
-  .side { position: static; }
+/* ---------- 화면 모드 ----------
+   <html>에 view-mobile 또는 view-pc 클래스가 붙는다 (index.html 머리의 스크립트가 정함).
+   기본값은 기기 화면 너비로 정하고, 페이지 맨 아래 버튼으로 바꿀 수 있다. */
+.view-switch { margin-top: 8px; display: flex; justify-content: center; align-items: center; gap: 4px; }
+.view-switch button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
 }
-@media (max-width: 640px) {
-  .topbar-inner { flex-wrap: wrap; gap: 8px 12px; }
-  .top-search { order: 3; flex: 1 1 100%; margin-left: 0; }
-  .top-search input { width: 100%; }
-  .icon-btn { margin-left: auto; }
-  .hero { padding: 28px 20px; }
-  .hero h1 { font-size: 28px; }
-  .stats { grid-template-columns: 1fr; }
-  .article { padding: 20px; }
-  .article h1 { font-size: 26px; }
-  .field-row { grid-template-columns: 1fr; }
-  .toolbar-row select { flex: 1 1 100%; }
+.view-switch button:hover { color: var(--text); }
+.view-switch button.on { color: var(--accent); font-weight: 700; }
+.view-switch .sep { color: var(--border); }
+
+/* ---------- 모바일 모드 ---------- */
+/* 연도 바: 목록 위의 가로 버튼 줄 */
+.view-mobile .tl-layout { grid-template-columns: 1fr; gap: 12px; }
+.view-mobile .year-nav {
+  order: -1;
+  position: static;
+  max-height: none;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 0 4px;
+  border-left: 0;
+  -webkit-overflow-scrolling: touch;
 }
+.view-mobile .year-nav-group { display: flex; gap: 6px; flex: 0 0 auto; }
+.view-mobile .year-nav-group + .year-nav-group { margin-top: 0; }
+.view-mobile .year-nav-era { width: auto; white-space: nowrap; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+.view-mobile .year-nav-group.open .year-nav-years { display: flex; gap: 6px; }
+.view-mobile .year-nav-item {
+  width: auto;
+  margin-left: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+.view-mobile .year-nav-dot { display: none; }
+.view-mobile .year-nav-item.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* 상단 바: 1줄(로고·메뉴·테마) + 2줄(검색) */
+.view-mobile .topbar-inner { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+.view-mobile .brand { font-size: 16px; gap: 6px; }
+.view-mobile .brand-mark { width: 18px; height: 18px; }
+.view-mobile .nav { gap: 0; }
+.view-mobile .nav a { padding: 6px 8px; font-size: 15px; }
+.view-mobile .icon-btn { margin-left: auto; width: 34px; height: 34px; order: 2; }
+.view-mobile .top-search { order: 3; flex: 1 1 100%; margin-left: 0; }
+.view-mobile .top-search input { width: 100%; }
+
+/* 본문 여백과 제목 */
+.view-mobile .container { padding: 16px 12px 40px; }
+.view-mobile .page-head { margin-bottom: 14px; gap: 10px; }
+.view-mobile .page-head h1 { font-size: 24px; }
+.view-mobile .hero { padding: 24px 18px; }
+.view-mobile .hero h1 { font-size: 26px; }
+.view-mobile .hero blockquote { font-size: 16px; }
+.view-mobile .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.view-mobile .stat { padding: 12px; }
+.view-mobile .stat .num { font-size: 22px; }
+.view-mobile .stat .label { font-size: 12px; }
+.view-mobile .wiki-grid { grid-template-columns: 1fr; gap: 10px; }
+
+/* 검색·필터 상자 */
+.view-mobile .toolbar { padding: 12px; gap: 10px; margin-bottom: 16px; }
+.view-mobile .toolbar-row input[type="search"],
+.view-mobile .toolbar-row select { flex: 1 1 100%; width: 100%; }
+
+/* 연표 카드 */
+.view-mobile .timeline { padding-left: 22px; }
+.view-mobile .timeline::before { left: 6px; }
+.view-mobile .era-head { margin-left: -22px; padding-left: 22px; }
+.view-mobile .event { padding: 12px 14px; }
+.view-mobile .event::before { left: -21px; top: 17px; width: 10px; height: 10px; }
+.view-mobile .event h3 { font-size: 16px; }
+.view-mobile .event p { font-size: 15px; }
+
+/* 위키 문서 */
+.view-mobile .article-layout { grid-template-columns: 1fr; gap: 12px; }
+.view-mobile .side { position: static; }
+.view-mobile .article { padding: 18px 16px; }
+.view-mobile .article h1 { font-size: 24px; }
+.view-mobile .article-body h2 { font-size: 19px; }
+.view-mobile .toc { display: block; }
+
+/* 편집 화면 */
+.view-mobile .form { padding: 16px; gap: 14px; }
+.view-mobile .field-row { grid-template-columns: 1fr; gap: 14px; }
+.view-mobile .form-actions { flex-wrap: wrap; }
+.view-mobile .form-actions .btn { flex: 1 1 auto; justify-content: center; }
+
+.view-mobile .footer { padding: 16px 12px; }

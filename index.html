@@ -2,8 +2,46 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>AssassinNote</title>
+  <script>
+    // 화면 모드(PC / 모바일)를 화면을 그리기 전에 정한다.
+    // 기본값: 기기 화면이 860px 이하이면 모바일, 아니면 PC. 맨 아래 버튼으로 고르면 이 브라우저에 기억한다.
+    (function () {
+      var KEY = "assassinnote.view", BREAK = 860, PC_WIDTH = 1180;
+      var root = document.documentElement, meta = document.getElementById("viewportMeta");
+      function saved() { try { var v = localStorage.getItem(KEY); return v === "pc" || v === "mobile" ? v : null; } catch (e) { return null; } }
+      // 휴대폰에서 PC 모드로 바꾸면 화면 폭을 넓혀 그리므로, 자동 판단은 기기 화면 크기를 기준으로 한다
+      function detect() {
+        var w = Math.min(screen.width || Infinity, window.innerWidth || Infinity);
+        return w <= BREAK ? "mobile" : "pc";
+      }
+      function apply(mode) {
+        root.classList.toggle("view-mobile", mode === "mobile");
+        root.classList.toggle("view-pc", mode === "pc");
+        root.dataset.view = mode;
+        // 작은 기기에서 PC 모드를 고르면 PC 화면 폭으로 그린 뒤 축소해서 보여 준다
+        var narrowDevice = screen.width && screen.width <= BREAK;
+        meta.setAttribute("content", mode === "pc" && narrowDevice
+          ? "width=" + PC_WIDTH + ", viewport-fit=cover"
+          : "width=device-width, initial-scale=1, viewport-fit=cover");
+      }
+      function current() { return saved() || detect(); }
+      window.AN_VIEW = {
+        current: current,
+        auto: detect,
+        set: function (mode) {
+          try {
+            if (mode === detect()) localStorage.removeItem(KEY); // 자동 판단과 같으면 기억하지 않는다
+            else localStorage.setItem(KEY, mode);
+          } catch (e) { /* 저장 못 해도 이번 화면에는 적용 */ }
+          apply(mode);
+        },
+        refresh: function () { apply(current()); }
+      };
+      apply(current());
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
@@ -34,6 +72,11 @@
 
   <footer class="footer">
     <p>팬이 만든 비공식 노트입니다. 어쌔신 크리드는 Ubisoft의 상표입니다. 편집 내용은 이 브라우저에만 저장됩니다.</p>
+    <div class="view-switch" id="viewSwitch" role="group" aria-label="화면 모드">
+      <button type="button" data-view="pc">PC 버전</button>
+      <span class="sep" aria-hidden="true">|</span>
+      <button type="button" data-view="mobile">모바일 버전</button>
+    </div>
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

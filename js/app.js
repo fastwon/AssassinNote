@@ -375,7 +375,7 @@
       </div>
       <div class="card toolbar">
         <div class="toolbar-row">
-          <input type="search" id="tlSearch" placeholder="사건 검색 (예: 에지오, 템플러)" value="${esc(state.q)}">
+          <input type="search" id="tlSearch" placeholder="사건 검색 (예: 알타이르, 템플 기사단)" value="${esc(state.q)}">
           <select id="tlGame" aria-label="작품 필터">
             <option value="">모든 작품</option>
             ${usedGames.map((g) => `<option value="${g.id}" ${g.id === state.game ? "selected" : ""}>${esc(g.title)}</option>`).join("")}
@@ -1009,6 +1009,25 @@
     });
   }
 
+  // ---------- 화면 모드 (PC / 모바일) ----------
+  // 실제 판단과 적용은 index.html 머리의 스크립트(window.AN_VIEW)가 한다
+  function initViewSwitch() {
+    const box = document.getElementById("viewSwitch");
+    const view = window.AN_VIEW;
+    if (!box || !view) return;
+    const mark = () => box.querySelectorAll("[data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === view.current()));
+    box.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-view]");
+      if (!btn || btn.dataset.view === view.current()) return;
+      view.set(btn.dataset.view);
+      mark();
+      toast(btn.dataset.view === "mobile" ? "모바일 버전으로 바꿨어요." : "PC 버전으로 바꿨어요.");
+    });
+    // 직접 고르지 않았다면 창 크기가 바뀔 때 다시 판단한다 (PC에서 창을 좁히는 경우 등)
+    window.addEventListener("resize", () => { view.refresh(); mark(); });
+    mark();
+  }
+
   // ---------- 시작 ----------
   document.addEventListener("click", (ev) => {
     const a = ev.target.closest("[data-scroll]");
@@ -1026,6 +1045,7 @@
 
   store.load();
   initTheme();
+  initViewSwitch();
   window.addEventListener("hashchange", route);
   route();
 })();
