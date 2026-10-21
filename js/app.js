@@ -375,7 +375,7 @@
       </div>
       <div class="card toolbar">
         <div class="toolbar-row">
-          <input type="search" id="tlSearch" placeholder="사건 검색 (예: 알타이르, 템플 기사단)" value="${esc(state.q)}">
+          <input type="search" id="tlSearch" placeholder="사건 검색 (예: 알타이어, 템플 기사단)" value="${esc(state.q)}">
           <select id="tlGame" aria-label="작품 필터">
             <option value="">모든 작품</option>
             ${usedGames.map((g) => `<option value="${g.id}" ${g.id === state.game ? "selected" : ""}>${esc(g.title)}</option>`).join("")}
