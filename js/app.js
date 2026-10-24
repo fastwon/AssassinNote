@@ -43,12 +43,14 @@
   }
 
   // 영상으로 확인되지 않은 연도(yearVerified가 true가 아님)에는 '추정' 표시를 붙인다
+  const DATE_GUESS_TIP = "연도는 영상에서 확인했지만, 월·일은 영상에 나오지 않아 다른 자료로 추정했어요.";
   const YEAR_GUESS_TIP = "영상에서 확인되지 않은 연도예요. 연도가 나오는 영상이 생기면 출처를 붙이고 확인 표시로 바꿔 주세요.";
   function yearHtml(ev) {
-    const base = esc(formatYear(ev));
-    const year = ev.yearVerified ? base : `${base} <span class="year-guess" title="${YEAR_GUESS_TIP}">(추정)</span>`;
     const date = formatMonthDay(ev);
-    return date ? `${year} ${esc(date)}` : year;
+    const base = esc(date ? `${formatYear(ev)} ${date}` : formatYear(ev));
+    if (!ev.yearVerified) return `${base} <span class="year-guess" title="${YEAR_GUESS_TIP}">(추정)</span>`;
+    // 연도는 확인됐지만 월·일은 영상 밖 자료로 추정한 경우
+    return ev.dateGuess ? `${base} <span class="year-guess" title="${DATE_GUESS_TIP}">(날짜 추정)</span>` : base;
   }
 
   // month, day는 영상에서 확인했을 때만 넣는다 (둘 다 선택)
