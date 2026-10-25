@@ -272,7 +272,7 @@ textarea { resize: vertical; line-height: 1.6; }
 
 .tl-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
+  grid-template-columns: minmax(0, 1fr) 140px;
   gap: 20px;
   align-items: start;
 }
@@ -344,6 +344,27 @@ textarea { resize: vertical; line-height: 1.6; }
   border: 2px solid var(--border);
   flex: 0 0 auto;
 }
+/* 10년 단위 묶음: 지금 보고 있는 10년대만 펼친다 */
+.year-nav-decade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 4px 8px 4px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.year-nav-decade-btn:hover { color: var(--text); background: var(--surface-2); }
+.year-nav-decade.open .year-nav-decade-btn { color: var(--text); font-weight: 700; }
+.year-nav-decade-years { display: none; }
+.year-nav-decade.open .year-nav-decade-years { display: block; }
 .year-nav-item.on { color: var(--accent); font-weight: 700; }
 .year-nav-item.on .year-nav-dot { border-color: var(--accent); background: var(--accent); }
 
@@ -533,15 +554,23 @@ a.missing { color: var(--missing); border-bottom: 1px dashed currentColor; }
 
 /* ---------- 모바일 모드 ---------- */
 /* 연도 바: 목록 위의 가로 버튼 줄 */
-.view-mobile .tl-layout { grid-template-columns: 1fr; gap: 12px; }
+/* 그리드 칸 안에서는 sticky가 움직이지 않으므로 세로 flex로 바꾼다 */
+.view-mobile .tl-layout { display: flex; flex-direction: column; gap: 12px; }
+.view-mobile .tl-layout > * { min-width: 0; }
 .view-mobile .year-nav {
   order: -1;
-  position: static;
+  position: sticky;
+  top: var(--topbar-h, 96px);
+  max-width: 100%;
+  min-width: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
   max-height: none;
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding: 0 0 4px;
   border-left: 0;
   -webkit-overflow-scrolling: touch;
 }
@@ -558,6 +587,12 @@ a.missing { color: var(--missing); border-bottom: 1px dashed currentColor; }
   white-space: nowrap;
 }
 .view-mobile .year-nav-dot { display: none; }
+.view-mobile .year-nav-years { align-items: center; }
+.view-mobile .year-nav-decade { display: flex; gap: 6px; flex: 0 0 auto; }
+.view-mobile .year-nav-decade-btn { width: auto; white-space: nowrap; border: 1px dashed var(--border); border-radius: 999px; padding: 4px 10px; }
+.view-mobile .year-nav-decade.open .year-nav-decade-years { display: flex; gap: 6px; }
+/* 고정된 연도 바에 가리지 않도록 이동 위치를 더 내린다 */
+.view-mobile .year-anchor, .view-mobile .era-head { scroll-margin-top: calc(var(--topbar-h, 96px) + 56px); }
 .view-mobile .year-nav-item.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* 상단 바: 1줄(로고·메뉴·테마) + 2줄(검색) */

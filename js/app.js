@@ -59,6 +59,8 @@
     return ev.day ? `${ev.month}월 ${ev.day}일` : `${ev.month}월`;
   }
 
+  const DECADE_GROUP_MIN = 8; // 한 시대의 연도가 이보다 많으면 연도 바에서 10년 단위로 묶는다
+  const decadeOf = (year) => Math.floor(year / 10) * 10;
   const eraOf = (year) => ERAS.find((e) => year < e.max) || ERAS[ERAS.length - 1];
   const gameById = (id) => GAMES.find((g) => g.id === id);
 
@@ -450,14 +452,32 @@
             <span class="year-nav-era-name">${esc(g.era.name)}</span>
             <span class="year-nav-era-count">${g.years.length}</span>
           </button>
-          <div class="year-nav-years">${g.years.map((y) => `
+          <div class="year-nav-years">${yearNavYears(g.years)}</div>
+        </div>`).join("");
+      updateYearNav();
+    };
+
+    // 연도가 많은 시대는 10년 단위로 묶고, 지금 보고 있는 10년대만 펼친다
+    const yearNavItem = (y) => `
             <button type="button" class="year-nav-item" data-year="${y.year}" title="${esc(formatYear({ year: y.year }))} · 사건 ${y.count}개${y.guess ? " · 추정 연도" : ""}">
               <span class="year-nav-dot"></span>
               <span class="year-nav-label">${esc(y.year < 0 ? `BC ${(-y.year).toLocaleString("ko-KR")}` : String(y.year))}</span>
-            </button>`).join("")}
-          </div>
-        </div>`).join("");
-      updateYearNav();
+            </button>`;
+    const yearNavYears = (years) => {
+      if (years.length <= DECADE_GROUP_MIN || years[0].year < 0) return years.map(yearNavItem).join("");
+      const decades = [];
+      for (const y of years) {
+        const d = decadeOf(y.year);
+        if (!decades.length || decades[decades.length - 1].decade !== d) decades.push({ decade: d, years: [] });
+        decades[decades.length - 1].years.push(y);
+      }
+      return decades.map((d) => `
+            <div class="year-nav-decade" data-decade="${d.decade}">
+              <button type="button" class="year-nav-decade-btn" data-year="${d.years[0].year}" title="${d.decade}년대 · 연도 ${d.years.length}개">
+                <span>${d.decade}년대</span><span class="year-nav-era-count">${d.years.length}</span>
+              </button>
+              <div class="year-nav-decade-years">${d.years.map(yearNavItem).join("")}</div>
+            </div>`).join("");
     };
 
     navEl.addEventListener("click", (ev) => {
@@ -496,15 +516,37 @@
     if (!nav) return;
     const anchors = [...document.querySelectorAll(".year-anchor")];
     if (!anchors.length) return;
+    // 모바일에서는 연도 바가 상단에 고정되므로 그 아래쪽을 기준선으로 삼는다
+    const horizontal = nav.scrollWidth > nav.clientWidth || getComputedStyle(nav).display === "flex";
+    const line = horizontal ? nav.getBoundingClientRect().bottom + 12 : 120;
     let current = anchors[0];
     for (const a of anchors) {
-      if (a.getBoundingClientRect().top <= 120) current = a;
+      if (a.getBoundingClientRect().top <= line) current = a;
       else break;
     }
-    nav.querySelectorAll(".year-nav-item").forEach((b) => b.classList.toggle("on", b.dataset.year === current.dataset.year));
+    const decade = String(decadeOf(Number(current.dataset.year)));
+    let on = null;
+    nav.querySelectorAll(".year-nav-item").forEach((b) => {
+      const hit = b.dataset.year === current.dataset.year;
+      b.classList.toggle("on", hit);
+      if (hit) on = b;
+    });
     nav.querySelectorAll(".year-nav-group").forEach((g) => g.classList.toggle("open", g.dataset.era === current.dataset.era));
+    nav.querySelectorAll(".year-nav-decade").forEach((d) => d.classList.toggle("open", d.dataset.decade === decade));
+    // 가로로 놓인 연도 바(모바일)는 지금 연도 버튼이 보이도록 가로로만 옮긴다
+    if (on && nav.scrollWidth > nav.clientWidth) {
+      const target = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2;
+      if (Math.abs(nav.scrollLeft - target) > 4) nav.scrollLeft = target;
+    }
   }
   window.addEventListener("scroll", updateYearNav, { passive: true });
+
+  // 모바일에서 연도 바를 상단 바 바로 아래에 붙이기 위해 상단 바 높이를 CSS 변수로 둔다
+  function syncTopbarHeight() {
+    const bar = document.querySelector(".topbar");
+    if (bar) document.documentElement.style.setProperty("--topbar-h", `${bar.offsetHeight}px`);
+  }
+  window.addEventListener("resize", syncTopbarHeight);
 
   function eventCard(e) {
     const g = gameById(e.game);
@@ -1022,6 +1064,7 @@
       const btn = ev.target.closest("[data-view]");
       if (!btn || btn.dataset.view === view.current()) return;
       view.set(btn.dataset.view);
+      syncTopbarHeight();
       mark();
       toast(btn.dataset.view === "mobile" ? "모바일 버전으로 바꿨어요." : "PC 버전으로 바꿨어요.");
     });
@@ -1048,6 +1091,7 @@
   store.load();
   initTheme();
   initViewSwitch();
+  syncTopbarHeight();
   window.addEventListener("hashchange", route);
   route();
 })();
