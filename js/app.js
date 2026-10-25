@@ -1067,6 +1067,79 @@
     app.innerHTML = `<div class="empty"><p>페이지를 찾을 수 없어요.</p><a class="btn" href="#/">홈으로</a></div>`;
   }
 
+  // ---------- 새로고침 (홈 화면에 추가한 앱용) ----------
+  // 홈 화면 앱에는 새로고침 버튼이 없고, 껐다 켜도 캐시된 옛 화면이 뜰 수 있다.
+  // 주소에 시각을 붙여 다시 열면 캐시 대신 최신 index.html과 파일을 받는다
+  function hardReload() {
+    const url = new URL(location.href);
+    url.searchParams.set("r", Date.now());
+    location.replace(url.toString());
+  }
+
+  // 배포된 index.html의 파일 버전(?v=)이 지금 화면과 다르면 새 버전이 올라온 것이므로 다시 연다
+  const ASSET_VERSION = ((document.querySelector('script[src*="js/app.js"]') || {}).src || "").split("v=")[1] || "";
+  let updateChecking = false;
+  async function checkForUpdate() {
+    if (!ASSET_VERSION || updateChecking || location.protocol === "file:") return;
+    updateChecking = true;
+    try {
+      const res = await fetch(`index.html?check=${Date.now()}`, { cache: "no-store" });
+      const m = (await res.text()).match(/js\/app\.js\?v=([^"&]+)/);
+      if (m && m[1] !== ASSET_VERSION) hardReload();
+    } catch (e) { /* 오프라인 등은 무시 */ }
+    updateChecking = false;
+  }
+
+  // 맨 위에서 화면을 아래로 당겼다 놓으면 새로고침 (터치 기기)
+  function initPullToRefresh() {
+    if (!("ontouchstart" in window)) return;
+    const PULL_MAX = 110, READY_AT = 64;
+    const ind = document.createElement("div");
+    ind.className = "ptr";
+    ind.innerHTML = `<span class="ptr-icon" aria-hidden="true">↓</span><span class="ptr-text">당겨서 새로고침</span>`;
+    document.body.appendChild(ind);
+    const text = ind.querySelector(".ptr-text");
+    let startX = 0, startY = null, pull = 0, active = false;
+    const reset = () => {
+      startY = null; active = false; pull = 0;
+      ind.classList.remove("dragging", "ready");
+      ind.style.transform = ""; ind.style.opacity = "";
+    };
+    window.addEventListener("touchstart", (ev) => {
+      if (window.scrollY > 0 || ev.touches.length !== 1) { startY = null; return; }
+      startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; active = false; pull = 0;
+    }, { passive: true });
+    window.addEventListener("touchmove", (ev) => {
+      if (startY === null) return;
+      const dx = Math.abs(ev.touches[0].clientX - startX), dy = ev.touches[0].clientY - startY;
+      if (!active) {
+        // 세로로 아래쪽을 분명히 당길 때만 시작한다 (연도 바 가로 스크롤 등은 무시)
+        if (dy > 10 && dy > dx * 1.5 && window.scrollY <= 0) active = true;
+        else if (dx > 10 || dy < -10) { startY = null; return; }
+        else return;
+      }
+      pull = Math.min(dy / 2, PULL_MAX);
+      const ready = pull >= READY_AT;
+      ind.classList.add("dragging");
+      ind.classList.toggle("ready", ready);
+      text.textContent = ready ? "놓으면 새로고침" : "당겨서 새로고침";
+      ind.style.transform = `translate(-50%, ${pull}px)`;
+      ind.style.opacity = String(Math.min(1, pull / 40));
+    }, { passive: true });
+    window.addEventListener("touchend", () => {
+      if (active && pull >= READY_AT) {
+        ind.classList.remove("dragging");
+        ind.classList.add("loading");
+        text.textContent = "새로고침 중…";
+        ind.style.transform = `translate(-50%, ${READY_AT}px)`;
+        hardReload();
+        return;
+      }
+      reset();
+    });
+    window.addEventListener("touchcancel", reset);
+  }
+
   // ---------- 테마 ----------
   function initTheme() {
     let saved = null;
@@ -1121,6 +1194,10 @@
   initTheme();
   initViewSwitch();
   syncTopbarHeight();
+  initPullToRefresh();
+  checkForUpdate();
+  // 홈 화면 앱을 다시 띄웠을 때(백그라운드에서 돌아올 때)도 새 버전을 확인한다
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkForUpdate(); });
   window.addEventListener("hashchange", route);
   route();
 })();

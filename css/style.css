@@ -647,3 +647,31 @@ a.missing { color: var(--missing); border-bottom: 1px dashed currentColor; }
 .view-mobile .form-actions .btn { flex: 1 1 auto; justify-content: center; }
 
 .view-mobile .footer { padding: 16px 12px; }
+
+/* ---------- 당겨서 새로고침 ---------- */
+.ptr {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) - 44px);
+  left: 50%;
+  transform: translate(-50%, 0);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  color: var(--muted);
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.ptr.dragging { transition: none; }
+.ptr-icon { display: inline-block; transition: transform 0.2s; }
+.ptr.ready, .ptr.loading { color: var(--accent); opacity: 1; }
+.ptr.ready .ptr-icon { transform: rotate(180deg); }
+.ptr.loading .ptr-icon { animation: ptr-spin 0.8s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
