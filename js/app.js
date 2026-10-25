@@ -485,7 +485,10 @@
       const btn = ev.target.closest("[data-year]");
       const anchor = eraBtn ? document.getElementById(`era-${eraBtn.dataset.eraJump}`)
         : btn ? document.getElementById(`year-${btn.dataset.year}`) : null;
-      if (anchor) anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (!anchor) return;
+      // 고정된 연도 바에 가리지 않는 위치로 직접 계산해 옮긴다 (기준선보다 살짝 위에 멈추도록)
+      const top = anchor.getBoundingClientRect().top + window.scrollY - yearNavOffset(navEl);
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     });
 
     document.getElementById("tlSearch").addEventListener("input", (ev) => { state.q = ev.target.value; renderList(); syncUrl(); });
@@ -510,15 +513,22 @@
     }
   }
 
+  // 연도로 이동할 때 화면 위쪽에서 비워 둘 높이: 모바일은 상단 바와 고정된 연도 바 아래, PC는 상단 바 아래
+  function yearNavOffset(nav) {
+    const cs = getComputedStyle(nav);
+    if (cs.display === "flex") return (parseFloat(cs.top) || 0) + nav.offsetHeight + 8;
+    const bar = document.querySelector(".topbar");
+    return (bar ? bar.offsetHeight : 60) + 16;
+  }
+
   // 연도 바에서 지금 보고 있는 연도를 강조하고 그 시대를 펼친다 (화면 위쪽을 지난 마지막 연도 표지 기준)
   function updateYearNav() {
     const nav = document.getElementById("yearNav");
     if (!nav) return;
     const anchors = [...document.querySelectorAll(".year-anchor")];
     if (!anchors.length) return;
-    // 모바일에서는 연도 바가 상단에 고정되므로 그 아래쪽을 기준선으로 삼는다
-    const horizontal = nav.scrollWidth > nav.clientWidth || getComputedStyle(nav).display === "flex";
-    const line = horizontal ? nav.getBoundingClientRect().bottom + 12 : 120;
+    // 이동할 때 멈추는 위치보다 조금 아래를 기준선으로 삼아, 이동한 곳의 연도가 바로 켜지게 한다
+    const line = yearNavOffset(nav) + 40;
     // 시대 제목이 기준선을 지났다면 그 시대의 첫 연도를 지금 연도로 본다
     // (시대 이름을 눌러 이동하면 시대 제목만 기준선을 지나고 첫 연도 표지는 그 아래에 있다)
     const marks = [...document.querySelectorAll(".era-head, .year-anchor")];
@@ -552,6 +562,12 @@
     if (bar) document.documentElement.style.setProperty("--topbar-h", `${bar.offsetHeight}px`);
   }
   window.addEventListener("resize", syncTopbarHeight);
+  // 글꼴이 늦게 들어오거나 줄바꿈이 바뀌어 상단 바 높이가 달라질 때도 다시 맞춘다
+  if (window.ResizeObserver) {
+    const bar = document.querySelector(".topbar");
+    if (bar) new ResizeObserver(syncTopbarHeight).observe(bar);
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncTopbarHeight);
 
   function eventCard(e) {
     const g = gameById(e.game);
