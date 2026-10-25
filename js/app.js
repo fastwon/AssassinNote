@@ -61,6 +61,9 @@
 
   const DECADE_GROUP_MIN = 8; // 한 시대의 연도가 이보다 많으면 연도 바에서 10년 단위로 묶는다
   const decadeOf = (year) => Math.floor(year / 10) * 10;
+  // 편집·삭제 기능 스위치. DB를 연결하기 전까지는 꺼 두고, 모두가 data.js 내용 그대로 본다
+  // (켜면 사건·문서 추가/편집/삭제, 데이터 메뉴, 브라우저에 저장한 편집 내용이 다시 살아난다)
+  const EDITING = false;
   const eraOf = (year) => ERAS.find((e) => year < e.max) || ERAS[ERAS.length - 1];
   const gameById = (id) => GAMES.find((g) => g.id === id);
 
@@ -91,6 +94,7 @@
   const store = {
     data: null,
     load() {
+      if (!EDITING) { this.data = freshData(); return; }
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
@@ -146,6 +150,7 @@
     const a = findArticle(ref);
     const text = esc(label || (a ? a.title : ref));
     if (a) return `<a href="#/wiki/${enc(a.id)}">${text}</a>`;
+    if (!EDITING) return `<span class="missing" title="아직 없는 문서예요.">${text}</span>`;
     return `<a class="missing" href="#/new/article?id=${enc(ref)}" title="아직 없는 문서예요. 눌러서 만들 수 있어요.">${text}</a>`;
   }
 
@@ -296,6 +301,7 @@
     else if (a === "timeline") viewTimeline(params);
     else if (a === "wiki" && !b) viewWikiList(params);
     else if (a === "wiki") viewArticle(b);
+    else if (!EDITING && (a === "new" || a === "edit" || a === "data")) viewNotFound();
     else if ((a === "new" || a === "edit") && b === "article") viewArticleForm(a === "edit" ? c : null, params);
     else if ((a === "new" || a === "edit") && b === "event") viewEventForm(a === "edit" ? c : null, params);
     else if (a === "data") viewData();
@@ -375,7 +381,7 @@
           <h1>연표</h1>
           <p>게임 속 세계의 역사를 시간 순서대로 정리했어요.</p>
         </div>
-        <a class="btn primary" href="#/new/event">＋ 사건 추가</a>
+        ${EDITING ? `<a class="btn primary" href="#/new/event">＋ 사건 추가</a>` : ""}
       </div>
       <div class="card toolbar">
         <div class="toolbar-row">
@@ -573,7 +579,8 @@
     const g = gameById(e.game);
     const links = (e.links || []).map((id) => {
       const a = findArticle(id);
-      return a ? `<a href="#/wiki/${enc(a.id)}">${esc(a.title)}</a>` : `<a class="missing" href="#/new/article?id=${enc(id)}">${esc(id)}</a>`;
+      if (a) return `<a href="#/wiki/${enc(a.id)}">${esc(a.title)}</a>`;
+      return EDITING ? `<a class="missing" href="#/new/article?id=${enc(id)}">${esc(id)}</a>` : `<span class="missing">${esc(id)}</span>`;
     }).join("");
     return `
       <article class="card event" id="ev-card-${esc(e.id)}">
@@ -585,7 +592,7 @@
         <p>${inline(e.summary || "")}</p>
         <div class="event-foot">
           <div class="event-links">${links}${sourceLinks(e.sources)}</div>
-          <a class="btn small" href="#/edit/event/${enc(e.id)}">편집</a>
+          ${EDITING ? `<a class="btn small" href="#/edit/event/${enc(e.id)}">편집</a>` : ""}
         </div>
       </article>`;
   }
@@ -603,7 +610,7 @@
           <h1>위키</h1>
           <p>영상에서 확인한 조직, 인물, 장소, 기술을 정리한 문서예요.</p>
         </div>
-        <a class="btn primary" href="#/new/article">＋ 새 문서</a>
+        ${EDITING ? `<a class="btn primary" href="#/new/article">＋ 새 문서</a>` : ""}
       </div>
       <div class="card toolbar">
         <div class="toolbar-row">
@@ -636,7 +643,7 @@
       }).filter((x) => x[1] >= 0).sort((x, y) => y[1] - x[1] || byKo(x[0].title, y[0].title));
 
       if (!scored.length) {
-        listEl.innerHTML = `<div class="empty"><p>검색 결과가 없어요.</p>${q ? `<a class="btn" href="#/new/article?title=${enc(state.q.trim())}">“${esc(state.q.trim())}” 문서 만들기</a>` : ""}</div>`;
+        listEl.innerHTML = `<div class="empty"><p>검색 결과가 없어요.</p>${q && EDITING ? `<a class="btn" href="#/new/article?title=${enc(state.q.trim())}">“${esc(state.q.trim())}” 문서 만들기</a>` : ""}</div>`;
         return;
       }
       listEl.innerHTML = `<div class="wiki-grid">${scored.map(([a]) => `
@@ -666,8 +673,8 @@
       app.innerHTML = `
         <div class="card article">
           <h1>“${esc(id)}” 문서가 없어요</h1>
-          <p class="muted">아직 아무도 쓰지 않은 문서예요. 직접 만들어 볼까요?</p>
-          <a class="btn primary" href="#/new/article?id=${enc(id)}">문서 만들기</a>
+          <p class="muted">${EDITING ? "아직 아무도 쓰지 않은 문서예요. 직접 만들어 볼까요?" : "아직 만들어지지 않은 문서예요."}</p>
+          ${EDITING ? `<a class="btn primary" href="#/new/article?id=${enc(id)}">문서 만들기</a>` : `<a class="btn" href="#/wiki">위키로 돌아가기</a>`}
         </div>`;
       return;
     }
@@ -688,10 +695,10 @@
           <div class="article-body">${html || `<p class="muted">본문이 비어 있어요.</p>`}</div>
         </article>
         <aside class="side">
-          <div class="side-actions">
+          ${EDITING ? `<div class="side-actions">
             <a class="btn" href="#/edit/article/${enc(a.id)}">편집</a>
             <button class="btn danger" type="button" id="delArticle">삭제</button>
-          </div>
+          </div>` : ""}
           <div class="card side-box">
             <h3>관련 연표 (${related.length})</h3>
             ${related.length ? `<ul>${related.map((e) => `<li><span class="y">${yearHtml(e)}</span><a href="#/timeline?focus=${enc(e.id)}">${esc(e.title)}</a></li>`).join("")}</ul>` : `<p class="muted">연결된 사건이 없어요.</p>`}
@@ -709,7 +716,7 @@
       </div>
     `;
 
-    document.getElementById("delArticle").addEventListener("click", () => {
+    if (EDITING) document.getElementById("delArticle").addEventListener("click", () => {
       if (!confirm(`“${a.title}” 문서를 삭제할까요? 다른 문서의 링크는 빨간 링크로 남아요.`)) return;
       store.data.articles = articles().filter((x) => x !== a);
       store.markDeleted(a.id);
@@ -1110,6 +1117,7 @@
   });
 
   store.load();
+  if (!EDITING) document.querySelectorAll('[data-nav="data"]').forEach((el) => el.remove());
   initTheme();
   initViewSwitch();
   syncTopbarHeight();
