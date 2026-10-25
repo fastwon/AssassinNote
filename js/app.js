@@ -519,10 +519,15 @@
     // 모바일에서는 연도 바가 상단에 고정되므로 그 아래쪽을 기준선으로 삼는다
     const horizontal = nav.scrollWidth > nav.clientWidth || getComputedStyle(nav).display === "flex";
     const line = horizontal ? nav.getBoundingClientRect().bottom + 12 : 120;
+    // 시대 제목이 기준선을 지났다면 그 시대의 첫 연도를 지금 연도로 본다
+    // (시대 이름을 눌러 이동하면 시대 제목만 기준선을 지나고 첫 연도 표지는 그 아래에 있다)
+    const marks = [...document.querySelectorAll(".era-head, .year-anchor")];
     let current = anchors[0];
-    for (const a of anchors) {
-      if (a.getBoundingClientRect().top <= line) current = a;
-      else break;
+    for (let i = 0; i < marks.length; i++) {
+      const m = marks[i];
+      if (m.getBoundingClientRect().top > line) break;
+      if (m.classList.contains("year-anchor")) current = m;
+      else if (marks[i + 1] && marks[i + 1].classList.contains("year-anchor")) current = marks[i + 1];
     }
     const decade = String(decadeOf(Number(current.dataset.year)));
     let on = null;
