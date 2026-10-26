@@ -59,7 +59,6 @@
     return ev.day ? `${ev.month}월 ${ev.day}일` : `${ev.month}월`;
   }
 
-  const DECADE_GROUP_MIN = 8; // 한 시대의 연도가 이보다 많으면 연도 바에서 10년 단위로 묶는다
   const decadeOf = (year) => Math.floor(year / 10) * 10;
   // 편집·삭제 기능 스위치. DB를 연결하기 전까지는 꺼 두고, 모두가 data.js 내용 그대로 본다
   // (켜면 사건·문서 추가/편집/삭제, 데이터 메뉴, 브라우저에 저장한 편집 내용이 다시 살아난다)
@@ -463,14 +462,15 @@
       updateYearNav();
     };
 
-    // 연도가 많은 시대는 10년 단위로 묶고, 지금 보고 있는 10년대만 펼친다
+    // 연도는 시대 안에서 다시 10년 단위로 묶고, 지금 보고 있는 10년대만 펼친다
     const yearNavItem = (y) => `
             <button type="button" class="year-nav-item" data-year="${y.year}" title="${esc(formatYear({ year: y.year }))} · 사건 ${y.count}개${y.guess ? " · 추정 연도" : ""}">
               <span class="year-nav-dot"></span>
               <span class="year-nav-label">${esc(y.year < 0 ? `BC ${(-y.year).toLocaleString("ko-KR")}` : String(y.year))}</span>
             </button>`;
     const yearNavYears = (years) => {
-      if (years.length <= DECADE_GROUP_MIN || years[0].year < 0) return years.map(yearNavItem).join("");
+      // 기원전 연도는 10년 단위로 묶기 어색하므로 그대로 둔다
+      if (years[0].year < 0) return years.map(yearNavItem).join("");
       const decades = [];
       for (const y of years) {
         const d = decadeOf(y.year);
