@@ -56,6 +56,7 @@
   // month, day는 영상에서 확인했을 때만 넣는다 (둘 다 선택)
   function formatMonthDay(ev) {
     if (!ev.month) return "";
+    if (ev.monthTo) return `${ev.month}~${ev.monthTo}월`; // 언제인지 몇 달 사이로만 좁힐 수 있는 사건
     return ev.day ? `${ev.month}월 ${ev.day}일` : `${ev.month}월`;
   }
 
