@@ -213,7 +213,8 @@
   function sourceHref(src) {
     const id = youtubeId(src.url);
     const base = id ? `https://youtu.be/${id}` : src.url;
-    return src.t ? `${base}${base.includes("?") ? "&" : "?"}t=${src.t}` : base;
+    // t=0도 붙인다. 시각이 없으면 유튜브가 마지막으로 보던 지점부터 이어서 재생한다
+    return typeof src.t === "number" ? `${base}${base.includes("?") ? "&" : "?"}t=${src.t}` : base;
   }
 
   function videoTitle(src) {
@@ -225,8 +226,10 @@
   function sourceLinks(sources) {
     // end가 있으면 장면 범위: 링크는 시작 시각, 마우스를 올리면 "시작 ~ 끝"
     return (sources || []).map((s) => {
-      const span = s.t ? fmtTime(s.t) + (s.end ? " ~ " + fmtTime(s.end) : "") : "";
-      return `<a class="src-link" href="${esc(sourceHref(s))}" target="_blank" rel="noopener" title="${esc(videoTitle(s))}${span ? " · " + span : ""}">▶ ${s.t ? fmtTime(s.t) : "영상"}</a>`;
+      // 0초(영상 처음)도 시각이므로 숫자인지로 판단한다
+      const hasT = typeof s.t === "number";
+      const span = hasT ? fmtTime(s.t) + (s.end ? " ~ " + fmtTime(s.end) : "") : "";
+      return `<a class="src-link" href="${esc(sourceHref(s))}" target="_blank" rel="noopener" title="${esc(videoTitle(s))}${span ? " · " + span : ""}">▶ ${hasT ? fmtTime(s.t) : "영상"}</a>`;
     }).join("");
   }
 
