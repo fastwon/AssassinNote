@@ -233,6 +233,15 @@
     }).join("");
   }
 
+  // 옆 칸 목록: 처음 CLIP_SHOW개만 보이고 나머지는 '더 보기'로 펼친다
+  const CLIP_SHOW = 8;
+  function clipList(items) {
+    if (items.length <= CLIP_SHOW + 2) return `<ul>${items.join("")}</ul>`;
+    const rest = items.length - CLIP_SHOW;
+    return `<ul class="clip">${items.map((li, i) => i < CLIP_SHOW ? li : li.replace("<li", '<li class="clip-more"')).join("")}</ul>`
+      + `<button class="clip-toggle" type="button" data-more="더 보기 (+${rest})">더 보기 (+${rest})</button>`;
+  }
+
   function groupByVideo(sources) {
     const groups = new Map();
     for (const s of sources) {
@@ -705,16 +714,16 @@
           </div>` : ""}
           <div class="card side-box">
             <h3>관련 연표 (${related.length})</h3>
-            ${related.length ? `<ul>${related.map((e) => `<li><span class="y">${yearHtml(e)}</span><a href="#/timeline?focus=${enc(e.id)}">${esc(e.title)}</a></li>`).join("")}</ul>` : `<p class="muted">연결된 사건이 없어요.</p>`}
+            ${related.length ? clipList(related.map((e) => `<li><span class="y">${yearHtml(e)}</span><a href="#/timeline?focus=${enc(e.id)}">${esc(e.title)}</a></li>`)) : `<p class="muted">연결된 사건이 없어요.</p>`}
           </div>
           ${(a.sources || []).length ? `
           <div class="card side-box">
             <h3>출처 영상 (${a.sources.length})</h3>
-            <ul>${groupByVideo(a.sources).map((g) => `<li><span class="y">${esc(videoTitle(g[0]))}</span><span class="src-group">${sourceLinks(g)}</span></li>`).join("")}</ul>
+            ${clipList(groupByVideo(a.sources).map((g) => `<li><span class="y">${esc(videoTitle(g[0]))}</span><span class="src-group">${sourceLinks(g)}</span></li>`))}
           </div>` : ""}
           <div class="card side-box">
             <h3>이 문서를 가리키는 문서 (${backlinks.length})</h3>
-            ${backlinks.length ? `<ul>${backlinks.map((o) => `<li><a href="#/wiki/${enc(o.id)}">${esc(o.title)}</a></li>`).join("")}</ul>` : `<p class="muted">아직 없어요.</p>`}
+            ${backlinks.length ? clipList(backlinks.map((o) => `<li><a href="#/wiki/${enc(o.id)}">${esc(o.title)}</a></li>`)) : `<p class="muted">아직 없어요.</p>`}
           </div>
         </aside>
       </div>
@@ -1180,6 +1189,13 @@
 
   // ---------- 시작 ----------
   document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".clip-toggle");
+    if (btn) {
+      const ul = btn.previousElementSibling;
+      const open = ul.classList.toggle("open");
+      btn.textContent = open ? "접기" : btn.dataset.more;
+      return;
+    }
     const a = ev.target.closest("[data-scroll]");
     if (!a) return;
     ev.preventDefault();

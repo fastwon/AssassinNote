@@ -500,6 +500,10 @@ a.missing { color: var(--missing); border-bottom: 1px dashed currentColor; }
 .side-box li { padding: 4px 0; border-top: 1px solid var(--border); }
 .side-box li:first-child { border-top: 0; }
 .side-box .y { color: var(--muted); font-size: 12px; display: block; }
+.side-box ul.clip li.clip-more { display: none; }
+.side-box ul.clip.open li.clip-more { display: list-item; }
+.clip-toggle { margin-top: 8px; width: 100%; padding: 6px 10px; font: inherit; font-size: 13px; color: var(--muted); background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.clip-toggle:hover { color: inherit; }
 .side-actions { display: flex; gap: 8px; }
 
 /* ---------- 편집 ---------- */
