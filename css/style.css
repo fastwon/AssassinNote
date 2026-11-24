@@ -504,6 +504,9 @@ a.missing { color: var(--missing); border-bottom: 1px dashed currentColor; }
 .side-box ul.clip.open li.clip-more { display: list-item; }
 .clip-toggle { margin-top: 8px; width: 100%; padding: 6px 10px; font: inherit; font-size: 13px; color: var(--muted); background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
 .clip-toggle:hover { color: inherit; }
+.more-toggle { margin: 2px 0 8px; padding: 3px 10px; font: inherit; font-size: 13px; color: var(--muted); background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.more-toggle:hover { color: inherit; }
+.event-detail { border-left: 3px solid var(--border); padding-left: 10px; margin-bottom: 8px; }
 .side-actions { display: flex; gap: 8px; }
 
 /* ---------- 편집 ---------- */

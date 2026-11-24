@@ -433,7 +433,7 @@
         if (q) {
           const g = gameById(e.game);
           const linked = (e.links || []).map((id) => { const a = findArticle(id); return a ? a.title : id; }).join(" ");
-          const hay = `${e.title} ${plain(e.summary)} ${g ? g.title : ""} ${linked} ${formatYear(e)}`.toLowerCase();
+          const hay = `${e.title} ${plain(e.brief || "")} ${plain(e.summary)} ${g ? g.title : ""} ${linked} ${formatYear(e)}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -602,7 +602,9 @@
           ${g ? `<span class="tag">${esc(g.title)}</span>` : ""}
         </div>
         <h3>${esc(e.title)}</h3>
-        <p>${inline(e.summary || "")}</p>
+        ${e.brief ? `<p>${inline(e.brief)}</p>
+        <button class="more-toggle" type="button">자세히</button>
+        <div class="event-detail" hidden><p>${inline(e.summary || "")}</p></div>` : `<p>${inline(e.summary || "")}</p>`}
         <div class="event-foot">
           <div class="event-links">${links}${sourceLinks(e.sources)}</div>
           ${EDITING ? `<a class="btn small" href="#/edit/event/${enc(e.id)}">편집</a>` : ""}
@@ -845,7 +847,7 @@
   }
 
   // 문서 이름을 바꿀 때 사건 이름·설명과 문서 요약·본문에 남은 옛 이름을 찾아 바꾼다
-  const TITLE_FIELDS = { events: ["title", "summary"], articles: ["summary", "body"] };
+  const TITLE_FIELDS = { events: ["title", "brief", "summary"], articles: ["summary", "body"] };
 
   function countTitleUses(oldTitle) {
     const res = { events: 0, articles: 0, total: 0 };
@@ -924,9 +926,14 @@
           <input type="text" id="eTitle" value="${esc(e.title)}">
         </div>
         <div class="field">
+          <label for="eBrief">짧은 요약</label>
+          <textarea id="eBrief" rows="2">${esc(e.brief || "")}</textarea>
+          <div class="hint">연표에 먼저 보이는 250자 이하 요약이에요. 비워 두면 아래 설명이 그대로 보여요.</div>
+        </div>
+        <div class="field">
           <label for="eSummary">설명</label>
           <textarea id="eSummary" rows="5">${esc(e.summary || "")}</textarea>
-          <div class="hint">[[문서id|글자]]로 위키 문서에 링크할 수 있어요.</div>
+          <div class="hint">[[문서id|글자]]로 위키 문서에 링크할 수 있어요. 짧은 요약이 있으면 '자세히'를 눌렀을 때 보여요.</div>
         </div>
         <div class="field">
           <label for="eLinks">관련 문서</label>
@@ -975,6 +982,7 @@
         month, day,
         game: document.getElementById("eGame").value,
         title,
+        brief: document.getElementById("eBrief").value.trim() || undefined,
         summary: document.getElementById("eSummary").value.trim(),
         links: document.getElementById("eLinks").value.split(",").map((s) => s.trim()).filter(Boolean),
         sources: parsed.sources
@@ -1189,6 +1197,13 @@
 
   // ---------- 시작 ----------
   document.addEventListener("click", (ev) => {
+    const more = ev.target.closest(".more-toggle");
+    if (more) {
+      const box = more.nextElementSibling;
+      box.hidden = !box.hidden;
+      more.textContent = box.hidden ? "자세히" : "접기";
+      return;
+    }
     const btn = ev.target.closest(".clip-toggle");
     if (btn) {
       const ul = btn.previousElementSibling;
