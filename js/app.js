@@ -142,8 +142,25 @@
   const events = () => store.data.events;
   const findArticle = (ref) => articles().find((a) => a.id === ref) ||
     articles().find((a) => a.title === ref || (a.aliases || []).includes(ref));
-  const sortedEvents = () => events().map((e, i) => [e, i])
-    .sort((a, b) => a[0].year - b[0].year || a[1] - b[1]).map((x) => x[0]);
+  // 연표 정렬: 연·월·일 순. 월이나 일이 없는 사건은 data.js에서 바로 앞 사건(같은 연도)의 날짜를 이어받아
+  // 영상 순서대로 그 자리에 머물고, 일이 없는 사건은 앞 사건보다 앞으로 가지 않는다
+  const sortedEvents = () => {
+    const base = events().map((e, i) => [e, i]).sort((a, b) => a[0].year - b[0].year || a[1] - b[1]);
+    const keys = new Map(); let prev = null;
+    for (const [e, i] of base) {
+      let m = e.month, d = e.day;
+      if (prev && prev.y === e.year) {
+        if (m == null) { m = prev.m; d = prev.d; } else if (d == null) d = prev.m === m ? prev.d : 0;
+      }
+      let k = { y: e.year, m: m || 0, d: d || 0, i };
+      if (e.day == null && prev && prev.y === e.year && (k.m < prev.m || (k.m === prev.m && k.d < prev.d))) k = { ...prev, i };
+      keys.set(e, k); prev = k;
+    }
+    return base.map((x) => x[0]).sort((a, b) => {
+      const x = keys.get(a), y = keys.get(b);
+      return x.y - y.y || x.m - y.m || x.d - y.d || x.i - y.i;
+    });
+  };
 
   // ---------- 위키 문법 ----------
   function wikiLink(ref, label) {
